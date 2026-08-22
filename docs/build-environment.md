@@ -65,6 +65,11 @@ Run from inside `main/` on WSL Ubuntu 24.04:
     mpifort -cpp -fopenmp -I/usr/include gTDGL.f95 -o gTDGL \
         -ldmumps -lscalapack-openmpi -lopenblas
 
+    or
+
+    mpifort -fopenmp -I/usr/include gTDGL.F90 -o gTDGL \
+        -ldmumps -lscalapack-openmpi -lopenblas
+
 Then: ./gTDGL  &&  python3 gTDGL_plotting.py
 
 ## Reproducing this environment
