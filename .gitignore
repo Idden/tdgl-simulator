@@ -32,3 +32,5 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 EOF
+# compiled executable
+main/gTDGL
