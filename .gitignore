@@ -1,8 +1,5 @@
 # ---------------------------------------------------------------------------
 # tdgl-simulator
-#
-# The repo is code-only. Simulation output (~6.5 GB) and the Python venv
-# (~317 MB) stay local and are regenerated from the code + input parameters.
 # ---------------------------------------------------------------------------
 
 # --- Python environment ----------------------------------------------------
