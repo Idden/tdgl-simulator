@@ -1,0 +1,120 @@
+import glob
+import sys
+import numpy as np
+import matplotlib.pyplot as plt
+
+# ---------------------------------------------------------------------------
+# grid parameters -- must match the Fortran run
+# ---------------------------------------------------------------------------
+DIMY = 60          # number of rows in the simulation grid
+SHOW_STAIRS = True # draw the raw (staircase) curve underneath
+
+# ---------------------------------------------------------------------------
+# why the raw curve is a staircase
+# ---------------------------------------------------------------------------
+# the mask is   |i - ci| > gap_half   with   ci = (dimy+1)/2 ,  gap_half = w0*dimy/2
+# i is an integer, so |i - ci| only ever takes the half-integer values
+#     0.5, 1.5, 2.5, ... , (dimy-1)/2
+# a row therefore switches from "wall" to "open" only when gap_half crosses one
+# of those half-integers.  writing  g = w0*dimy/2 ,  the number of open rows is
+#     n_open(w0) = 2 * floor(g + 0.5)
+# so every w0 inside the window
+#     (2k-1)/dimy  <  w0  <=  (2k+1)/dimy          with   k = floor(g + 0.5)
+# produces the *identical* geometry -> the identical I_c -> one stair step.
+#
+# the honest x-value for that step is the centre of its window,
+#     w_mid = ( (2k-1)/dimy + (2k+1)/dimy ) / 2 = 2k / dimy = n_open / dimy
+# which is exactly the true (effective) channel width of that geometry.
+# nice bonus: this is unbiased even for the first/last steps, which the sweep
+# range chops off, so a plain "mean of the w0 values I happened to run" would
+# get those two wrong.
+# ---------------------------------------------------------------------------
+
+
+def geom_key(w0, dimy=DIMY):
+    """k = number of open rows on ONE side of the channel centre."""
+    g = 0.5 * dimy * np.asarray(w0, dtype=float)
+    k = np.floor(g + 0.5)
+    return np.clip(k, 0, dimy // 2).astype(int)
+
+
+# ---------------------------------------------------------------------------
+# load data
+# ---------------------------------------------------------------------------
+files = sorted(glob.glob(sys.argv[1] if len(sys.argv) > 1 else "data_fine/grid_task*.txt"))
+
+W = []
+Ic = []
+
+for fname in files:
+    data = np.loadtxt(fname)
+    data = np.atleast_2d(data)
+    if data.size == 0:
+        continue
+
+    iI = data[:, 1].astype(int)
+    w0 = data[:, 2]
+    I = data[:, 3]
+    vortex = data[:, 4].astype(int)
+
+    # I_c: smallest I with vortex==1
+    order = np.argsort(iI)
+    I, vortex = I[order], vortex[order]
+    hit = np.where(vortex == 1)[0]
+    if hit.size:
+        W.append(w0[0])
+        Ic.append(I[hit.min()])
+
+W = np.array(W)
+Ic = np.array(Ic)
+order = np.argsort(W)
+W, Ic = W[order], Ic[order]
+
+# ---------------------------------------------------------------------------
+# collapse each stair step to its midpoint
+# ---------------------------------------------------------------------------
+k = geom_key(W)
+
+w_mid, Ic_mid, n_in_step = [], [], []
+for kk in np.unique(k):
+    m = k == kk
+    step_Ic = Ic[m]
+    if np.ptp(step_Ic) > 0:
+        # same geometry should give the same I_c; if not, say so and take median
+        print(f"  note: k={kk} (w={2*kk/DIMY:.4f}) has {len(np.unique(step_Ic))} "
+              f"distinct I_c values, spread {np.ptp(step_Ic):.3e} -- using median")
+    w_mid.append(2.0 * kk / DIMY)
+    Ic_mid.append(np.median(step_Ic))
+    n_in_step.append(m.sum())
+
+w_mid = np.array(w_mid)
+Ic_mid = np.array(Ic_mid)
+
+print(f"{len(W)} sweep points collapse to {len(w_mid)} distinct geometries")
+print(f"{'w0_run_centre':>14} {'n_open_rows':>12} {'n_runs':>7} {'I_c':>12}")
+for wm, im, nn in zip(w_mid, Ic_mid, n_in_step):
+    print(f"{wm:14.4f} {int(round(wm*DIMY)):12d} {nn:7d} {im:12.6f}")
+
+# ---------------------------------------------------------------------------
+# I_c curve
+# ---------------------------------------------------------------------------
+plt.figure(figsize=(16, 9.5))
+
+if SHOW_STAIRS:
+    plt.step(W, Ic, where="post", color="0.75", lw=1.5,
+             label="raw sweep (grid-discretizeted)")
+
+plt.plot(w_mid, Ic_mid, "-o", color="tab:blue", lw=2.5, ms=8,
+         label="step midpoints (effective width)")
+
+plt.xlabel("$w_0 \\, / \\, w_{lead}$", fontsize=35)
+plt.ylabel("$J_c \\, / \\, J_0$", fontsize=35)
+plt.tick_params(axis='both', which='major', labelsize=25)
+plt.title("Current vs. Constriction Width", fontsize=45)
+plt.xlim(0.2, 0.9)
+plt.ylim(0.07, 0.15)
+plt.grid(alpha=0.3)
+plt.legend(fontsize=30)
+plt.tight_layout()
+plt.savefig("Jc_vs_width.png", dpi=200)
+plt.show()
