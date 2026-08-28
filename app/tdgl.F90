@@ -1,4 +1,4 @@
-program solve_pde
+program solve_tdgl
 #ifdef _OPENMP
     use omp_lib
 #endif
@@ -976,4 +976,4 @@ contains
 
     end subroutine compute_div_Jtot_field
 
-end program solve_pde
+end program solve_tdgl
