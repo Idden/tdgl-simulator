@@ -42,7 +42,7 @@ pip install -r requirements.txt
 
 ```bash
 cd app
-mpifort -fopenmp -I/usr/include gTDGL.F90 -o gTDGL \
+mpifort -fopenmp -I/usr/include tdgl.F90 -o tdgl \
     -ldmumps -lscalapack-openmpi -lopenblas
 ```
 
@@ -52,10 +52,10 @@ mpifort -fopenmp -I/usr/include gTDGL.F90 -o gTDGL \
 cd app
 mkdir -p data
 export OMP_NUM_THREADS=8
-./gTDGL
+./tdgl
 ```
 
-Simulation parameters are compile-time constants near the top of `gTDGL.F90`:
+Simulation parameters are compile-time constants near the top of `tdgl.F90`:
 
 | Parameter | Meaning | Default |
 |---|---|---|
@@ -75,20 +75,20 @@ Change a value, build, rerun. Then plot animations of fields and diagnostics:
 
 ```bash
 cd ../analysis
-python gTDGL_plotting.py
+python diagnostic.py
 ```
 
 Parameter sweeps live under `sweeps/`, each with a SLURM array-job script that partitions field values across tasks:
 
 ```bash
-cd sweeps/kappa
-sbatch gTDGL_sweep_kappa.sh 3.0
+cd sweeps/hp_vs_kappa_vs_size
+for k in 2.0 3.0 5.0 8.0; do sbatch sweep_hp_kappa_size.sh $k done
 ```
 
 ## Repository structure
 
 ```
-app/          gTDGL.F90 - the solver
+app/          tdgl.F90 - the solver
 analysis/     diagnostics and plotting from the binary field dumps
   checks/     flux and phase quantization verification
 sweeps/       parameter studies: solver + SLURM script + plotting

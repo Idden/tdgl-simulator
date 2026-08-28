@@ -33,12 +33,10 @@ data_*/
 
 # --- compiled Fortran ------------------------------------------------------
 # Linux executables have no extension, so they are listed by exact path.
-app/gTDGL
-sweeps/curr_vs_mag/gTDGL_sweep_phase
-sweeps/geometry/gTDGL_sweep_width
-sweeps/kappa/gTDGL_sweep_kappa
-archive/test
-archive/save
+app/tdgl
+sweeps/curr_vs_hp/sweep_curr_hp
+sweeps/curr_vs_w0/sweep_curr_w0
+sweeps/hp_vs_kappa_vs_size/sweep_hp_kappa_size
 
 # build artifacts
 *.o
