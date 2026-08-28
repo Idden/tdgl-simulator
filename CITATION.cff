@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "tdgl-simulator"
+abstract: >-
+  Time-dependent Ginzburg-Landau simulation of vortex dynamics in constricted 
+  superconducting thin films. The software is designed to study the dynamics and 
+  power dissipation induced by moving vortices.
+type: software
+authors:
+  - family-names: Tsai
+    given-names: Idden
+repository-code: "https://github.com/Idden/tdgl-simulator"
+url: "https://github.com/Idden/tdgl-simulator"
+keywords:
+  - superconductivity
+  - Ginzburg-Landau
+  - vortex dynamics
+  - computational physics
+  - vortex dissipation
+  - geometry effects
+license: MIT
+date-released: 2026-08-22
+version: "1.0.0"
