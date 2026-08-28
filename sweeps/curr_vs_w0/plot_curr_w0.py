@@ -9,39 +9,16 @@ import matplotlib.pyplot as plt
 DIMY = 60          # number of rows in the simulation grid
 SHOW_STAIRS = True # draw the raw (staircase) curve underneath
 
-# ---------------------------------------------------------------------------
-# why the raw curve is a staircase
-# ---------------------------------------------------------------------------
-# the mask is   |i - ci| > gap_half   with   ci = (dimy+1)/2 ,  gap_half = w0*dimy/2
-# i is an integer, so |i - ci| only ever takes the half-integer values
-#     0.5, 1.5, 2.5, ... , (dimy-1)/2
-# a row therefore switches from "wall" to "open" only when gap_half crosses one
-# of those half-integers.  writing  g = w0*dimy/2 ,  the number of open rows is
-#     n_open(w0) = 2 * floor(g + 0.5)
-# so every w0 inside the window
-#     (2k-1)/dimy  <  w0  <=  (2k+1)/dimy          with   k = floor(g + 0.5)
-# produces the *identical* geometry -> the identical I_c -> one stair step.
-#
-# the honest x-value for that step is the centre of its window,
-#     w_mid = ( (2k-1)/dimy + (2k+1)/dimy ) / 2 = 2k / dimy = n_open / dimy
-# which is exactly the true (effective) channel width of that geometry.
-# nice bonus: this is unbiased even for the first/last steps, which the sweep
-# range chops off, so a plain "mean of the w0 values I happened to run" would
-# get those two wrong.
-# ---------------------------------------------------------------------------
-
-
 def geom_key(w0, dimy=DIMY):
     """k = number of open rows on ONE side of the channel centre."""
     g = 0.5 * dimy * np.asarray(w0, dtype=float)
     k = np.floor(g + 0.5)
     return np.clip(k, 0, dimy // 2).astype(int)
 
-
 # ---------------------------------------------------------------------------
 # load data
 # ---------------------------------------------------------------------------
-files = sorted(glob.glob(sys.argv[1] if len(sys.argv) > 1 else "data_fine/grid_task*.txt"))
+files = sorted(glob.glob(sys.argv[1] if len(sys.argv) > 1 else "data/grid_task*.txt"))
 
 W = []
 Ic = []

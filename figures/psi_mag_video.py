@@ -6,13 +6,13 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, FFMpegWriter, PillowWriter
 
 # Parameters must keep in sync with Fortran
-dimx = 150
-dimy = 150
+dimx = 60
+dimy = 60
 n = dimx * dimy
 ymax = 30.0
-n_t = 600000
+n_t = 100000
 tmax = 1000.0
-stride = 3000
+stride = 250
 fps = 10
 frame_skip = 1
 

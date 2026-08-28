@@ -6,12 +6,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Fortran parameters
-dimx = 150
-dimy = 150
+dimx = 60
+dimy = 60
 ymax = 30.0
-n_t = 300000
-tmax = 500.0
-stride = 3000
+n_t = 100000
+tmax = 1000.0
+stride = 250
 mask_blockade = False
 
 FRAME = 96
@@ -35,8 +35,8 @@ plt.rcParams.update({
 })
 
 # output
-sim_ext_mag = "0"
-sim_curr = "012"
+sim_ext_mag = "00353"
+sim_curr = "015"
 out_name = f"poster_current_density_{sim_ext_mag}mag_{sim_curr}curr_f{FRAME}.png"
 
 n_snapshots = n_t // stride

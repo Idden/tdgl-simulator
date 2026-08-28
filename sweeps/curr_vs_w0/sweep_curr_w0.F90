@@ -193,7 +193,7 @@ contains
         ci = (dimy + 1) / 2d0
         cj = (dimx + 1) / 2d0
 
-        rect_half_w = 0.05d0 * dimx        ! half width of blockade
+        rect_half_w = 0.05d0 * dimx       ! half width of blockade
         gap_half = w0_frac * 0.5d0 * dimy ! half height of open channel
 
         if (abs(real(j,8) - cj) <= rect_half_w .and. &
@@ -233,7 +233,7 @@ contains
         real(8), allocatable :: Ax(:), Ay(:)
         integer :: nv
         integer, parameter :: detect_stride = 200
-        integer, parameter :: detect_start = H_relax + H_ramp
+        integer, parameter :: detect_start = n_ramp
 
         ! time keeping
         real(8) :: t0, twall0

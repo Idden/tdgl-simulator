@@ -8,13 +8,13 @@ from matplotlib.gridspec import GridSpec
 from matplotlib.patches import Circle
 
 # Fortran parameters
-dimx = 150
-dimy = 150
+dimx = 60
+dimy = 60
 ymax = 30.0
-n_t = 600000
+n_t = 100000
 tmax = 1000.0
-stride = 3000
-stride_power = 300
+stride = 250
+stride_power = 250
 
 # --- annihilation timing --------------------------------------------------
 # FRAME_ANNIH is a *psi* frame index (i.e. counted in units of `stride`).

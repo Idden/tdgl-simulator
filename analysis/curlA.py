@@ -7,13 +7,13 @@ from matplotlib.animation import FuncAnimation, FFMpegWriter, PillowWriter
 from matplotlib.colors import TwoSlopeNorm
 
 # Parameters must keep in sync with Fortran
-dimx = 90
+dimx = 60
 dimy = 60
 n = dimx*dimy
-ymax = 30
-n_t = 30000
-tmax = 300.0
-stride = 200
+ymax = 30.0
+n_t = 100000
+tmax = 1000.0
+stride = 250
 fps = 10
 frame_skip = 1
 include_external_field = True
@@ -42,7 +42,7 @@ A_filename = "data/vec_pot.bin"
 
 label = "totalBz" if include_external_field else "inducedBz"
 video_name = (
-    f"curlA_full_{label}_1gam_2.1kap_{n_t}t_{dimx}dimx_{dimy}dimy_"
+    f"curlA_full_{label}_0gam_2.1kap_{n_t}t_{dimx}dimx_{dimy}dimy_"
     f"{sim_ext_mag}mag_{sim_curr}curr.mp4"
 )
 

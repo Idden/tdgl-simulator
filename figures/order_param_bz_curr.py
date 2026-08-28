@@ -10,9 +10,9 @@ from matplotlib.patches import Circle
 dimx = 60
 dimy = 60
 ymax = 30.0
-n_t = 1000
-tmax = 10.0
-stride = 100
+n_t = 100000
+tmax = 1000.0
+stride = 250
 
 # one frame for all three panels
 FRAME = 4

@@ -11,9 +11,9 @@ dimx = 60
 dimy = 60
 n = dimx*dimy
 ymax = 30.0
-n_t = 20000
-tmax = 200.0
-stride = 200
+n_t = 100000
+tmax = 1000.0
+stride = 250
 fps = 10
 frame_skip = 1
 
@@ -21,9 +21,9 @@ include_external_field = True
 mask_blockade = False
 
 # video name vars
-sim_ext_mag = "0"
-sim_curr = "0125"
-H_ext = 0.0
+sim_ext_mag = "00353"
+sim_curr = "015"
+H_ext = 0.0353
 
 n_snapshots = n_t // stride
 

@@ -8,7 +8,7 @@ H_ext = 0.0353
 pad = dim
 dimA = 3 * dim
 Phi0 = 2 * np.pi
-stride = 200
+stride = 250
 H_ramp = 5000
 
 # load data

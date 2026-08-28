@@ -3,7 +3,7 @@ import numpy as np
 dim = 60
 xymax = 30.0
 h = xymax / (dim - 1)
-H_ext = 0.0
+H_ext = 0.0353
 center = (dim + 1)/2
 wrap = lambda x: (x + np.pi) % (2*np.pi) - np.pi # prevent large gradients from -pi to pi
 
