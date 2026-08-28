@@ -146,6 +146,7 @@ program solve_pde
 
         ! linspace for I
         if (H_list(iH) <= 0.27d0) then
+            ! off of previous runs this choice was made to narrow the scanning range of I to increase resolution
             I_min = -0.37037d0 * H_list(iH) + 0.122d0
             I_max = -0.37037d0 * H_list(iH) + 0.145d0
             do iI = 1, nI

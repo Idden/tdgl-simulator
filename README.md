@@ -82,7 +82,7 @@ Parameter sweeps live under `sweeps/`, each with a SLURM array-job script that p
 
 ```bash
 cd sweeps/hp_vs_kappa_vs_size
-for k in 2.0 3.0 5.0 8.0; do sbatch sweep_hp_kappa_size.sh $k done
+for k in 2.0 3.0 5.0 8.0; do sbatch sweep_hp_kappa_size.sh $k; done
 ```
 
 ## Repository structure
@@ -125,4 +125,3 @@ Final Additions:
 - equations, normalization, discretization, vortex-detection criterion, 
   references (link to latex documentation)
 - insert hero image at top of readme
-- fpm.toml and ford.md

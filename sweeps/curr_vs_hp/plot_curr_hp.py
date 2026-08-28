@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+# MAKE SURE TO LET USERS NOW HOW TO RUN THIS THING ESPECIALLY THAT THE DATA COMES FROM MULTIPLE RUNS
+
 def load_grid(fname):
     data = np.loadtxt(fname)
     iH = data[:, 0].astype(int)
@@ -50,9 +52,9 @@ for label, fname in files.items():
 
 plt.legend(fontsize=35)
 plt.annotate(
-    "No Vortices",               # Text inside the bubble
-    xy=(0.08, 0.05),        # Coordinate of the dot
-    xytext=(0.1, 0.04),      # Coordinate of the bubble
+    "No Vortices",              # Text inside the bubble
+    xy=(0.08, 0.05),            # Coordinate of the dot
+    xytext=(0.1, 0.04),         # Coordinate of the bubble
     ha='center', va='center',
     fontsize=45,
     
@@ -62,20 +64,12 @@ plt.annotate(
         facecolor="white",          # Bubble background color
         edgecolor="black",          # Bubble border color
         lw=1.5
-    ),
-    
-    # 2. This creates the line and the "Dot"
-    # arrowprops=dict(
-    #     arrowstyle="-|>",           # Line style (replaces standard arrow)
-    #     connectionstyle="arc3",     # Straight line connection
-    #     color="black",              # Line and dot color
-    #     lw=1.5,                     # Line width
-    # )
+    )
 )
 plt.annotate(
-    "Vortices",               # Text inside the bubble
-    xy=(0.08, 0.05),        # Coordinate of the dot
-    xytext=(0.2, 0.12),      # Coordinate of the bubble
+    "Vortices",                 # Text inside the bubble
+    xy=(0.08, 0.05),            # Coordinate of the dot
+    xytext=(0.2, 0.12),         # Coordinate of the bubble
     ha='center', va='center',
     fontsize=45,
     
@@ -85,15 +79,7 @@ plt.annotate(
         facecolor="white",          # Bubble background color
         edgecolor="black",          # Bubble border color
         lw=1.5
-    ),
-    
-    # 2. This creates the line and the "Dot"
-    # arrowprops=dict(
-    #     arrowstyle="-|>",           # Line style (replaces standard arrow)
-    #     connectionstyle="arc3",     # Straight line connection
-    #     color="black",              # Line and dot color
-    #     lw=1.5,                     # Line width
-    # )
+    )
 )
 plt.xlabel("$H_{ext} \\, / \\, H_{c_2}$", fontsize=35)
 plt.ylabel("$J_c \\, / \\, J_0$", fontsize=35)

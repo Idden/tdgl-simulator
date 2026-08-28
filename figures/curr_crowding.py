@@ -46,7 +46,7 @@ dt_snap = stride * dt
 xmax = h * (dimx - 1)
 extent = [0, xmax, 0, ymax]
 
-Js_filename = "data_curr_crowd/Js.bin"
+Js_filename = "data/Js.bin"
 
 
 def load_current(filename):

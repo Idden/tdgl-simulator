@@ -300,7 +300,7 @@ program solve_tdgl
         end do
         !$omp end parallel do
 
-        ! diagnostics
+        ! diagnostic prints
         if (mod(t, print_stride) == 0) then
             sum_abs_psi = 0d0
             psi_count = 0
