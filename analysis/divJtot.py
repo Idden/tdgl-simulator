@@ -1,3 +1,8 @@
+# Animates div(Jtot) as written by Fortran. This is the current conservation
+# check -- total current is divergence free, so this should sit at numerical
+# noise. A bright spot means the Poisson solve is not converging there.
+# Reads data/div_Jtot.bin.
+
 import matplotlib
 matplotlib.use("Agg")
 
@@ -18,7 +23,7 @@ frame_skip = 1
 
 mask_blockade = False
 
-# video name vars
+# Video name pieces
 sim_ext_mag = "00353"
 sim_curr = "015"
 
@@ -38,7 +43,9 @@ div_Jtot_filename = "data/div_Jtot.bin"
 
 video_name = f"divJtot_{n_t}t_{dimx}dimx_{dimy}dimy_{sim_ext_mag}mag_{sim_curr}curr.mp4"
 
-# blockade mask
+# Blockade mask
+# Same lorentzian constriction the solver uses: the channel pinches from
+# lead_half down to w0_half over a width set by R. True = vacuum, not SC.
 def make_blockade_mask(dimx, dimy):
     mask = np.zeros((dimy, dimx), dtype=bool)
 
@@ -63,7 +70,7 @@ def make_blockade_mask(dimx, dimy):
 
 blockade_mask = make_blockade_mask(dimx, dimy)
 
-# load data
+# Load data
 def load_scalar(filename):
     flat = np.fromfile(filename, dtype=np.float64)
 
@@ -76,6 +83,8 @@ def load_scalar(filename):
             f"(Is unit 90 / div_Jtot.bin uncommented and the sim rerun?)"
         )
     
+    # Fortran's fast index is i (y), so reshape gives [frame, x, y]
+    # and the transpose flips it to [frame, y, x]
     data = flat.reshape(n_snapshots, dimx, dimy).transpose(0, 2, 1)
 
     return data
@@ -93,7 +102,7 @@ if mask_blockade:
 else:
     div_plot_data = div_Jtot_all
 
-# helper functions
+# Helper functions
 def save_animation(animation, mp4_name, fps=15):
     print(f"Saving {mp4_name}...")
 
@@ -106,7 +115,7 @@ def save_animation(animation, mp4_name, fps=15):
 
     print("Done.")
 
-# color limits
+# Color limits
 print("Computing color limits...")
 clim_pct = 100.0
 
@@ -127,7 +136,7 @@ div_norm = TwoSlopeNorm(vmin=-div_abs_max, vcenter=0.0, vmax=div_abs_max)
 print(f"div(Jtot) color limit: +/- {div_abs_max:.6e}")
 print("Done.")
 
-# animation
+# Animation: div(Jtot)
 frame0 = 0
 div0 = div_plot_data[frame0]
 

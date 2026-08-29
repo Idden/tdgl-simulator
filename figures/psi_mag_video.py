@@ -1,3 +1,7 @@
+# Plain |psi|^2 animation, no diagnostics on top. This is the one for talks:
+# vortices show up as dark cores moving through the constriction.
+# Reads data/psi.bin.
+
 import matplotlib
 matplotlib.use("Agg")
 
@@ -18,7 +22,7 @@ frame_skip = 1
 
 mask_blockade = False
 
-# video name vars
+# Video name pieces
 sim_ext_mag = "00353"
 sim_curr = "015"
 
@@ -36,7 +40,9 @@ psi_filename = "data/psi.bin"
 video_name = f"mag_{sim_ext_mag}mag_{sim_curr}curr.mp4"
 
 
-# Mask blockade (only used if mask_blockade = True)
+# Blockade mask (only used if mask_blockade = True)
+# Same lorentzian constriction the solver uses: the channel pinches from
+# lead_half down to w0_half over a width set by R. True = vacuum, not SC.
 def make_blockade_mask(dimx, dimy):
     mask = np.zeros((dimy, dimx), dtype=bool)
 
@@ -108,11 +114,11 @@ if mask_blockade:
 else:
     psi_plot = psi
 
-psi_abs_max = 1.0
+psi_abs_max = 1.0 # |psi|^2 = 1 is the bulk value; anything over is flagged
 
 frames = list(range(0, n_snapshots, frame_skip))
 
-# ---------------------------------------------------------------- figure
+# Animation: |psi|^2
 frame0 = 0
 mag0 = np.abs(psi_plot[frame0]) ** 2
 

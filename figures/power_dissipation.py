@@ -1,3 +1,10 @@
+# Poster figure for a vortex-antivortex annihilation. Top row is |psi|^2 just
+# before and just after the event, bottom row is the total dissipated power
+# P(t) with the moment marked. Reads data/psi.bin and data/power.bin.
+#
+# power.bin is written on its own stride, so it has a finer time axis than
+# psi.bin -- that is why the two are loaded and indexed separately.
+
 import matplotlib
 matplotlib.use("Agg")
 
@@ -16,18 +23,19 @@ tmax = 1000.0
 stride = 250
 stride_power = 250
 
-# --- annihilation timing --------------------------------------------------
-# FRAME_ANNIH is a *psi* frame index (i.e. counted in units of `stride`).
+# Annihilation timing. FRAME_ANNIH is a psi frame index, counted in units of
+# stride, not stride_power.
 FRAME_ANNIH = 61
 FRAME_STEP = 1
 FRAME_BEFORE = FRAME_ANNIH - FRAME_STEP
 FRAME_AFTER = FRAME_ANNIH + FRAME_STEP
 
-# --- P(t) cosmetics -------------------------------------------------------
+# P(t) cosmetics
 P_YLIM = None      # None -> autoscale with headroom; or set e.g. (0.0, 1.2)
 P_SMOOTH = 0       # 0 = raw. >1 = boxcar smoothing over this many power frames.
 
-# --- global text sizing ---------------------------------------------------
+# Global text sizing. Everything scales off BASE, so bump that to resize all
+# the text at once for a poster.
 BASE = 22          # ticks, colorbar numbers
 TITLE_SIZE = 25    # panel titles
 LABEL_SIZE = 22    # axis labels
@@ -41,27 +49,28 @@ plt.rcParams.update({
     "ytick.labelsize":  BASE,
 })
 
-# output
+# Output
 sim_ext_mag = "00353"
 sim_curr = "015"
 out_name = f"poster_dissipation_{sim_ext_mag}mag_{sim_curr}curr_f{FRAME_ANNIH}.pdf"
 
-# data files
+# Data files
 psi_filename = "data/psi.bin"
 power_filename = "data/power.bin"
 
-# ------------------------------------------------------------------ derived
-n_snap_psi = n_t // stride              # 200
-n_snap_pow = n_t // stride_power        # 2000
+# Derived quantities. The two strides give two different frame counts.
+n_snap_psi = n_t // stride       # psi frames
+n_snap_pow = n_t // stride_power # power frames
 h = ymax / (dimy - 1)
 dt = tmax / n_t
-dt_snap = stride * dt                   # psi frame spacing        (5.0 tau_GL)
-dt_snap_pow = stride_power * dt         # power frame spacing      (0.5 tau_GL)
+dt_snap = stride * dt           # psi frame spacing, in tau_GL
+dt_snap_pow = stride_power * dt # power frame spacing, in tau_GL
 xmax = h * (dimx - 1)
 extent = [0, xmax, 0, ymax]
 
-# ------------------------------------------------------------------ blockade mask
-# excludes the vacuum blockade from the P(t) sum
+# Blockade mask, which keeps the vacuum out of the P(t) sum.
+# Same lorentzian constriction the solver uses: the channel pinches from
+# lead_half down to w0_half over a width set by R. True = vacuum, not SC.
 def make_blockade_mask(dimx, dimy):
     mask = np.zeros((dimy, dimx), dtype=bool)
     ci = (dimy + 1) / 2.0
@@ -79,7 +88,10 @@ def make_blockade_mask(dimx, dimy):
 
 blockade_mask = make_blockade_mask(dimx, dimy)
 
-# ------------------------------------------------------------------ loaders
+# Load data
+# Frame counts are taken from the file size rather than trusted from the
+# parameters above, so a stride mismatch gets caught instead of reshaping
+# into garbage.
 def _frames_in_file(filename, itemsize, expect_frames, label):
     """Return the actual frame count in the file, warning if it disagrees."""
     nbytes = os.path.getsize(filename)
@@ -114,23 +126,23 @@ def load_scalar(filename, expect_frames):
     return data
 
 
-# ------------------------------------------------------------------ load
 print("Loading psi and power...")
-psi = load_psi(psi_filename)[1:]                       # drop initial condition
-pow_all = load_scalar(power_filename, n_snap_pow)      # own, finer stride
+psi = load_psi(psi_filename)[1:]                  # drop the initial condition
+pow_all = load_scalar(power_filename, n_snap_pow) # own, finer stride
 
 n_psi_frames = psi.shape[0]
 n_pow_frames = pow_all.shape[0]
 print(f"psi frames   : {n_psi_frames}  (dt_snap     = {dt_snap:.3f} tau_GL)")
 print(f"power frames : {n_pow_frames}  (dt_snap_pow = {dt_snap_pow:.3f} tau_GL)")
 
-# sign-fix guard: old runs stored -|Jn|^2
+# Dissipation p = Jn.E = |Jn|^2 / sigma_n must be >= 0. Runs from before the
+# Ex/Ey sign fix in tdgl.F90 come out as -|Jn|^2, so detect and flip them.
 finite = pow_all[np.isfinite(pow_all)]
 if finite.size and np.sum(finite) < 0.0:
     print("WARNING: power.bin predominantly negative (pre Ex/Ey sign fix). Flipping.")
     pow_all = -pow_all
 
-# frame bounds check -- these index psi only
+# Frame bounds check -- these index psi, not power
 for nm, fr in (("BEFORE", FRAME_BEFORE), ("ANNIH", FRAME_ANNIH), ("AFTER", FRAME_AFTER)):
     if fr < 0 or fr >= n_psi_frames:
         raise IndexError(f"{nm} psi frame {fr} out of range 0..{n_psi_frames-1}.")
@@ -144,9 +156,8 @@ t_after = (FRAME_AFTER + 1) * dt_snap
 print(f"before f{FRAME_BEFORE} t={t_before:.1f} | annih f{FRAME_ANNIH} t={t_annih:.1f} "
       f"| after f{FRAME_AFTER} t={t_after:.1f}")
 
-# ------------------------------------------------------------------ P(t) curve
-# total dissipated power vs time: integrate p over SC only (blockade excluded),
-# on the FINE power time grid.
+# Total dissipated power vs time. Integrate p over the SC only, so the vacuum
+# blockade never contributes, and do it on the finer power time grid.
 P_tot = np.nansum(np.where(blockade_mask[None, :, :], np.nan, pow_all), axis=(1, 2)) * h ** 2
 t_axis = (np.arange(n_pow_frames) + 1) * dt_snap_pow
 
@@ -159,23 +170,23 @@ else:
 
 t_end = n_pow_frames * dt_snap_pow
 
-# ------------------------------------------------------------------ colormap
+# Colormap
 mag_cmap = plt.cm.magma.copy()
 mag_cmap.set_over("magenta")
 
-# ================================================================== figure
-# Top row: two square snapshots (before | after) sharing one vertical colorbar
-# on the far right. Bottom row: P(t) spanning the full width.
+# Figure: two square snapshots on the top row, before and after, sharing one
+# vertical colorbar on the far right. P(t) spans the full width underneath.
 fig = plt.figure(figsize=(11.0, 9.5))
 gs = GridSpec(2, 2, height_ratios=[1.45, 0.9], figure=fig)
 
 ax_before = fig.add_subplot(gs[0, 0])
 ax_after = fig.add_subplot(gs[0, 1])
-ax_power = fig.add_subplot(gs[1, :])   # span both columns
+ax_power = fig.add_subplot(gs[1, :]) # span both columns
 
 TITLE_PAD = 13
 
 
+# Shared styling for the two snapshot panels
 def square_snap(ax, data, title, show_ylabel=True):
     im = ax.imshow(
         data, origin="lower", extent=extent,
@@ -199,9 +210,9 @@ im_after = square_snap(ax_after, mag_after,
                        rf"After ($t = {t_after:.0f}\,\tau_{{GL}}$)",
                        show_ylabel=False)
 
-# --- total dissipated power P(t), full width ---
+# P(t) across the full width
 ax_power.plot(t_axis, P_plot, lw=1.6, color="#3b0f70")
-# bracket the annihilation: faint before/after markers + bold annihilation line
+# Bracket the annihilation: faint before/after markers, bold line on the event
 ax_power.axvline(t_before, color="#8c8c8c", lw=1.6, ls=":", alpha=0.8)
 ax_power.axvline(t_after, color="#8c8c8c", lw=1.6, ls=":", alpha=0.8)
 ax_power.axvline(t_annih, color="#b73779", lw=2.6, ls="--",
@@ -219,18 +230,20 @@ ax_power.grid(alpha=0.3)
 ax_power.legend(fontsize=20, frameon=False, loc="upper left")
 ax_power.margins(x=0.01)
 
-# lay out the main axes (left margin wide for the P(t) y-label,
-# right margin leaves room for the vertical shared colorbar)
+# Lay out the main axes. The left margin is wide for the P(t) y label, the
+# right margin leaves room for the shared colorbar.
 fig.subplots_adjust(left=0.1, right=0.87, top=0.94, bottom=0.1,
                     wspace=0.25, hspace=0.42)
 
-# one shared vertical colorbar to the far right, spanning the snapshot row
+# One shared vertical colorbar to the far right, spanning the snapshot row
 p_after = ax_after.get_position()
 cax = fig.add_axes([p_after.x1 + 0.015, p_after.y0, 0.018, p_after.height])
 cb = fig.colorbar(im_before, cax=cax, extend="max", orientation="vertical")
 cb.set_label(r"$|\psi|^2$", fontsize=CBAR_LABEL)
 cb.ax.tick_params(labelsize=BASE)
 
+# Hand-placed annotations on P(t), marking when the field ramp, the current
+# ramp and the first vortex nucleation show up in the dissipation
 t_e = 50.0
 y_e = np.interp(t_e, t_axis, P_plot)
 ax_power.annotate("Mag",
@@ -261,19 +274,21 @@ ax_power.annotate("1st Nucleation",
                   arrowprops=dict(arrowstyle="->", color="#b73779", lw=2,
                                   connectionstyle="arc3,rad=0.25"))
 
-CIRC_XY = (15.0, 10.8)   # (x, y) center of the annihilating pair
-CIRC_R  = 4.5            # radius in xi
+# Circle the annihilating pair on both snapshots
+CIRC_XY = (15.0, 10.8) # (x, y) centre of the pair, in xi
+CIRC_R  = 4.5          # radius in xi
 
 def mark_region(ax, xy=CIRC_XY, r=CIRC_R, color="lime"):
     ax.add_patch(Circle(
         xy, r,
         fill=False,
         edgecolor=color,
-        linestyle=(0, (6, 4)),   # dash pattern: 6 on, 4 off
+        linestyle=(0, (6, 4)), # dash pattern: 6 on, 4 off
         linewidth=2.5,
         zorder=5,
     ))
 
+# Redraw both snapshots with the circle on top
 im_before = square_snap(ax_before, mag_before,
                         rf"Before ($t = {t_before:.0f}\,\tau_{{GL}}$)")
 mark_region(ax_before)

@@ -1,3 +1,7 @@
+# Dissipated power p = Jn.E = |Jn|^2 / sigma_n. Saves two things: a png of
+# the total power P(t) integrated over the SC, and an animation of where the
+# dissipation sits in space. Reads data/power.bin.
+
 import matplotlib
 matplotlib.use("Agg")
 
@@ -16,10 +20,10 @@ stride = 250
 fps = 10
 frame_skip = 1
 
-mask_blockade = False
-log_scale = True
+mask_blockade = False # blank the vacuum blockade in the animation
+log_scale = True      # dissipation spans decades, so log is usually clearer
 
-# video name vars
+# Video name pieces
 sim_ext_mag = "00353"
 sim_curr = "015"
 
@@ -40,7 +44,9 @@ power_filename = "data/power.bin"
 video_name = f"power_{n_t}t_{dimx}dimx_{dimy}dimy_{sim_ext_mag}mag_{sim_curr}curr.mp4"
 total_png_name = f"power_total_{n_t}t_{dimx}dimx_{dimy}dimy_{sim_ext_mag}mag_{sim_curr}curr.png"
 
-# blockade mask
+# Blockade mask
+# Same lorentzian constriction the solver uses: the channel pinches from
+# lead_half down to w0_half over a width set by R. True = vacuum, not SC.
 def make_blockade_mask(dimx, dimy):
     mask = np.zeros((dimy, dimx), dtype=bool)
 
@@ -65,7 +71,7 @@ def make_blockade_mask(dimx, dimy):
 
 blockade_mask = make_blockade_mask(dimx, dimy)
 
-# load data
+# Load data
 def load_scalar(filename):
     flat = np.fromfile(filename, dtype=np.float64)
 
@@ -78,6 +84,8 @@ def load_scalar(filename):
             f"(Is unit 100 / power.bin uncommented and the sim rerun?)"
         )
     
+    # Fortran's fast index is i (y), so reshape gives [frame, x, y]
+    # and the transpose flips it to [frame, y, x]
     data = flat.reshape(n_snapshots, dimx, dimy).transpose(0, 2, 1)
 
     return data
@@ -105,7 +113,7 @@ if mask_blockade:
 else:
     pow_plot_data = pow_all
 
-# helper functions
+# Helper functions
 def save_animation(animation, mp4_name, fps=15):
     print(f"Saving {mp4_name}...")
 
@@ -118,7 +126,8 @@ def save_animation(animation, mp4_name, fps=15):
 
     print("Done.")
 
-# total dissipated power vs time
+# Total dissipated power vs time
+# Integrate p over the SC only, so the vacuum blockade never contributes.
 P_tot = np.nansum(np.where(blockade_mask, np.nan, pow_all), axis=(1, 2)) * h**2
 t_axis = (np.arange(n_snapshots) + 1) * dt_snap
 
@@ -140,7 +149,7 @@ fig.savefig(total_png_name, dpi=150)
 plt.close(fig)
 print(f"Saved {total_png_name}")
 
-# animation
+# Animation: where the dissipation sits
 print("Computing color limits...")
 clim_pct = 100.0
 
@@ -154,6 +163,8 @@ if not (np.isfinite(vmax) and vmax > 0.0):
     vmax = 1.0
 
 if log_scale:
+    # LogNorm cannot take zeros, so the floor comes from the 1st percentile
+    # of the strictly positive values
     pos = vals[vals > 0.0]
     vmin = np.percentile(pos, 1.0) if pos.size else 1e-12
     pow_norm = LogNorm(vmin=vmin, vmax=vmax)

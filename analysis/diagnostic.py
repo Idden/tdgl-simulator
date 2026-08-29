@@ -1,3 +1,7 @@
+# Main diagnostic animation. Reads every field dump the solver writes and
+# plays them side by side: |psi|^2, phase, curl(A), the J vectors, div(Js)
+# and phi. This is the script to run first when checking a new run.
+
 import matplotlib
 matplotlib.use("Agg")
 
@@ -20,7 +24,7 @@ frame_skip = 1
 include_external_field = True
 mask_blockade = False
 
-# video name vars
+# Video name pieces
 sim_ext_mag = "00353"
 sim_curr = "015"
 H_ext = 0.0353
@@ -94,8 +98,8 @@ def load_psi(filename):
             f"Check dimx, dimy, n_t, stride, or filename."
         )
 
-    # CHANGED: Fortran stores idx = i + (j-1)*dimy, so i (y) is the fast index:
-    # reshape gives [frame, x, y], transpose flips to [frame, y, x]
+    # Fortran stores idx = i + (j-1)*dimy, so i (y) is the fast index.
+    # Reshape gives [frame, x, y], the transpose flips it to [frame, y, x].
     data = flat.reshape(n_snapshots + 1, dimx, dimy).transpose(0, 2, 1)
 
     return data
@@ -223,9 +227,9 @@ Jnx_all, Jny_all = load_normal_current(Jn_filename)
 Jtotx_all, Jtoty_all = load_total_current(Jtot_filename)
 curlA_all = compute_curlA(Ax_all, Ay_all)
 
-# Align psi with J/div/phi frames.
-# psi_all[0] is initial condition.
-# J/div/phi frame 0 corresponds to the first saved time-loop output.
+# Align psi with the J/div/phi frames.
+# psi_all[0] is the initial condition, everything else starts at the first
+# saved time-loop output, so drop it before pairing frames up.
 psi = psi_all[1:]
 
 print(f"psi shape:   {psi.shape}")
@@ -302,7 +306,7 @@ def save_animation(animation, mp4_name, fps=15):
     print("Done.")
 
 
-# Color limits
+# Color limits, shared by every panel
 print("Computing color limits...")
 
 clim_pct = 100.0      # div, curl(A)

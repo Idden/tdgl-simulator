@@ -1,3 +1,7 @@
+# Poster figure for current crowding. Two panels from one frame: the |Js| map
+# on the left, and |Js| sampled along the top SC boundary on the right, where
+# the pile-up at the constriction shows as a peak. Reads data/Js.bin.
+
 import matplotlib
 matplotlib.use("Agg")
 
@@ -14,13 +18,15 @@ tmax = 1000.0
 stride = 250
 mask_blockade = False
 
-FRAME = 96
-EDGE_OFFSET = 1
+FRAME = 96      # which saved frame to draw
+EDGE_OFFSET = 1 # step this many cells into the SC from the boundary
 
-# --- binning of the 1D edge trace (right panel only) ----------------------
+# Binning of the 1D edge trace (right panel only). The raw trace is noisy at
+# single-column resolution, so neighbours get averaged into one point.
 BIN = 3                  # average this many adjacent x columns per point
 
-# --- global text sizing ---------------------------------------------------
+# Global text sizing. Everything scales off BASE, so bump that to resize all
+# the text at once for a poster.
 BASE       = 22          # ticks, colorbar numbers
 TITLE_SIZE = 25          # panel titles
 LABEL_SIZE = 22          # axis labels
@@ -34,7 +40,7 @@ plt.rcParams.update({
     "ytick.labelsize":  BASE,
 })
 
-# output
+# Output
 sim_ext_mag = "00353"
 sim_curr = "015"
 out_name = f"poster_current_density_{sim_ext_mag}mag_{sim_curr}curr_f{FRAME}.png"
@@ -49,8 +55,9 @@ extent = [0, xmax, 0, ymax]
 Js_filename = "data/Js.bin"
 
 
+# Load data
 def load_current(filename):
-    # supercurrent Jsx, Jsy on the dimx*dimy grid
+    # Supercurrent Jsx, Jsy on the dimx*dimy grid
     flat = np.fromfile(filename, dtype=np.float64)
     expected_size = n_snapshots * 2 * dimx * dimy
     if flat.size != expected_size:
@@ -64,8 +71,10 @@ def load_current(filename):
     return Jsx, Jsy
 
 
+# Same lorentzian constriction the solver uses: the channel pinches from
+# lead_half down to w0_half over a width set by R. True = vacuum, not SC.
 def make_blockade_mask(dimx, dimy):
-    mask = np.zeros((dimy, dimx), dtype=bool)   # rows = y (i), cols = x (j)
+    mask = np.zeros((dimy, dimx), dtype=bool) # rows = y (i), cols = x (j)
 
     ci = (dimy + 1) / 2.0
     cj = (dimx + 1) / 2.0
@@ -84,6 +93,9 @@ def make_blockade_mask(dimx, dimy):
     return mask
 
 
+# Walk each column and find the topmost SC cell, which traces the upper
+# boundary of the channel. edge_offset steps inward so the trace samples SC
+# rather than the cell right against the vacuum.
 def top_sc_row_per_column(blockade_mask, edge_offset=0):
     dy, dx = blockade_mask.shape
     top_rows = np.full(dx, -1, dtype=int)
@@ -92,8 +104,8 @@ def top_sc_row_per_column(blockade_mask, edge_offset=0):
         sc_rows = np.nonzero(is_sc[:, j])[0]
         if sc_rows.size == 0:
             continue
-        top = sc_rows.max()                 # topmost SC cell in this column
-        top = top - edge_offset             # step into the SC if requested
+        top = sc_rows.max()     # topmost SC cell in this column
+        top = top - edge_offset # step into the SC if requested
         top = min(max(top, 0), dy - 1)
         if blockade_mask[top, j]:
             below = sc_rows[sc_rows <= top]
@@ -110,16 +122,16 @@ def bin_edge_trace(x, y, nbin):
     comes back as NaN and simply is not drawn.
     """
     n_groups = x.size // nbin
-    n_used = n_groups * nbin            # drop the leftover columns at the end
+    n_used = n_groups * nbin # drop the leftover columns at the end
     xg = x[:n_used].reshape(n_groups, nbin)
     yg = y[:n_used].reshape(n_groups, nbin)
 
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore", RuntimeWarning)   # all-NaN groups
+        warnings.simplefilter("ignore", RuntimeWarning) # all-NaN groups
         y_mean = np.nanmean(yg, axis=1)
         y_min = np.nanmin(yg, axis=1)
         y_max = np.nanmax(yg, axis=1)
-    x_c = xg.mean(axis=1)               # group centre in x
+    x_c = xg.mean(axis=1) # group centre in x
 
     return x_c, y_mean, y_min, y_max
 
@@ -132,14 +144,14 @@ if FRAME < 0 or FRAME >= Jsx_all.shape[0]:
 
 Jx = Jsx_all[FRAME]                             # [y, x]
 Jy = Jsy_all[FRAME]
-Jmag = np.sqrt(Jx ** 2 + Jy ** 2)               # supercurrent magnitude map
+Jmag = np.sqrt(Jx ** 2 + Jy ** 2) # supercurrent magnitude map
 t_here = (FRAME + 1) * dt_snap
 print(f"Frame {FRAME}  ->  t = {t_here:.3f}")
 
 xs = np.linspace(0, xmax, dimx)
 ys = np.linspace(0, ymax, dimy)
 
-# trace the top SC edge and sample |J| along it
+# Trace the top SC edge and sample |J| along it
 blockade_mask = make_blockade_mask(dimx, dimy)
 top_rows = top_sc_row_per_column(blockade_mask, EDGE_OFFSET)
 
@@ -159,7 +171,7 @@ x_peak = xs[np.nanargmax(Jmag_edge)]
 print(f"Top-SC edge |J|: range [{np.nanmin(Jmag_edge):.4g}, "
       f"{np.nanmax(Jmag_edge):.4g}]  peak at x = {x_peak:.2f}")
 
-# average the edge trace in non-overlapping groups of BIN adjacent columns
+# Average the edge trace in non-overlapping groups of BIN adjacent columns
 x_bin, J_bin_mean, J_bin_min, J_bin_max = bin_edge_trace(xs, Jmag_edge, BIN)
 n_dropped = dimx - (dimx // BIN) * BIN
 print(f"Binned edge trace: {x_bin.size} points of {BIN} columns each"
@@ -168,17 +180,16 @@ if np.any(np.isfinite(J_bin_mean)):
     print(f"Binned peak <|J|> = {np.nanmax(J_bin_mean):.4g} "
           f"at x = {x_bin[np.nanargmax(J_bin_mean)]:.2f}")
 
-# ================================================================== figure
-# Two panels side by side, equal width:
-#   left  = supercurrent magnitude map (square, 150x150 grid)
-#   right = 1D |J| along the top SC boundary
+# Figure: two panels side by side, equal width.
+#   left  = supercurrent magnitude map, with the traced boundary drawn on top
+#   right = 1D |J| along that boundary, binned
 fig, (ax_map, ax_line) = plt.subplots(1, 2, figsize=(15.0, 6.6))
 
 TITLE_PAD = 13
 CBAR_FRAC = 0.046
 CBAR_PAD  = 0.02
 
-# --- left: |J| magnitude map ---
+# Left panel: |J| magnitude map
 jmax = np.nanpercentile(Jmag_masked, 100.0)
 if not (np.isfinite(jmax) and jmax > 0):
     jmax = 1.0
@@ -200,13 +211,15 @@ cb_j = fig.colorbar(im_j, ax=ax_map, fraction=CBAR_FRAC, pad=CBAR_PAD)
 cb_j.set_label(r"$|J_s|$ / $J_0$", fontsize=CBAR_LABEL)
 cb_j.ax.tick_params(labelsize=BASE)
 
-# --- right: 1D |J| along the top SC boundary, averaged in groups of BIN ---
+# Right panel: |J| along the top SC boundary, averaged in groups of BIN.
+# The error bars span the min and max inside each bin, not a statistical
+# uncertainty -- they show how much the trace varies across the bin.
 yerr = np.vstack([J_bin_mean - J_bin_min, J_bin_max - J_bin_mean])
 ax_line.errorbar(
     x_bin, J_bin_mean, yerr=yerr,
-    color="lime", lw=2.6,                    # connecting line through means
+    color="lime", lw=2.6,             # connecting line through the means
     marker="o", ms=5.0, mfc="lime", mec="lime",
-    ecolor="#0b6b0b", elinewidth=1.6,        # darker green bars for contrast
+    ecolor="#0b6b0b", elinewidth=1.6, # darker green bars for contrast
     capsize=4.0, capthick=1.6,
     zorder=3,
 )
@@ -218,6 +231,7 @@ ax_line.set_xlim(0, xmax)
 ax_line.set_ylim(bottom=0)
 ax_line.grid(True, alpha=0.3)
 ax_line.tick_params(labelsize=BASE, length=6, width=1.4)
+# Depairing current, the ceiling |Js| cannot exceed
 ax_line.axhline(y=0.508, color='crimson', linestyle='--', label=r"$J_d$")
 ax_line.legend(fontsize=20, loc="upper right")
 

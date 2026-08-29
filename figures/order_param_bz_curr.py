@@ -1,3 +1,7 @@
+# Poster figure: three panels from a single frame -- |psi|^2, the phase, and
+# B_z with the supercurrent quivered on top. Reads data/psi.bin,
+# data/vec_pot.bin and data/Js.bin.
+
 import matplotlib
 matplotlib.use("Agg")
 
@@ -14,22 +18,23 @@ n_t = 100000
 tmax = 1000.0
 stride = 250
 
-# one frame for all three panels
+# One frame, shared by all three panels
 FRAME = 4
 
-# external field (added to the induced B_z, same as your field scripts)
+# The solver holds the applied field separately from the induced A, so add it
+# back to get the total B_z. Same convention as curlA.py.
 include_external_field = True
 H_ext = 0.0353
 
-# --- supercurrent quiver tuning (drawn on the B_z panel) ------------------
-QUIV_STRIDE = 4          # arrow every Nth grid point (bigger = sparser). 150x150 is dense.
+# Supercurrent quiver tuning, drawn on the B_z panel
+QUIV_STRIDE = 4          # arrow every Nth grid point (bigger = sparser)
 QUIV_SCALE = None        # None -> autoscale; set a number to fix arrow length
 QUIV_COLOR = "black"
 QUIV_WIDTH = 0.004
 QUIV_ALPHA = 0.9
 
-# --- global text sizing for POSTER use -----------------------------------
-# Everything scales off these. Bump BASE up/down to make ALL text bigger/smaller.
+# Global text sizing for poster use. Everything scales off BASE, so bump that
+# to resize all the text at once.
 BASE       = 22          # base font size (ticks, colorbar numbers)
 TITLE_SIZE = 25          # panel titles (a)(b)(c)
 LABEL_SIZE = 22          # x / y axis labels
@@ -45,17 +50,17 @@ plt.rcParams.update({
     "figure.titlesize": SUPTITLE,
 })
 
-# output
+# Output
 sim_ext_mag = "00353"
 sim_curr = "015"
 out_name = f"geo2.png"
 
-# data files (same folder convention as your other poster scripts)
+# Data files
 psi_filename = "data/psi.bin"
 A_filename   = "data/vec_pot.bin"
 Js_filename  = "data/Js.bin"
 
-# ------------------------------------------------------------------ derived
+# Derived quantities
 n_snapshots = n_t // stride
 h = ymax / (dimy - 1)
 dt = tmax / n_t
@@ -63,12 +68,16 @@ dt_snap = stride * dt
 xmax = h * (dimx - 1)
 extent = [0, xmax, 0, ymax]
 
-# big vector-potential grid (same convention as diagnostic.py / curlA.py)
+# A lives on a grid 3x the size of the SC block so the field can fall off in
+# vacuum. padx/pady are where the SC block sits inside that bigger grid.
+# Same convention as diagnostic.py and curlA.py.
 padx = (3 * dimy - dimx) // 2
 pady = dimy
 dimA = 3 * dimy
 
-# ------------------------------------------------------------------ loaders
+# Load data
+# Fortran's fast index is i (y), so every reshape gives [frame, x, y] and the
+# transpose flips it to [frame, y, x].
 def load_psi(filename):
     flat = np.fromfile(filename, dtype=np.complex128)
     expected_size = (n_snapshots + 1) * dimx * dimy
@@ -90,7 +99,7 @@ def load_current(filename):
             f"Expected Jx and Jy for each saved frame."
         )
     flat = flat.reshape(n_snapshots, 2, dimx, dimy)
-    Jsx = flat[:, 0, :, :].transpose(0, 2, 1)   # [frame, y, x]
+    Jsx = flat[:, 0, :, :].transpose(0, 2, 1) # [frame, y, x]
     Jsy = flat[:, 1, :, :].transpose(0, 2, 1)
     return Jsx, Jsy
 
@@ -104,11 +113,12 @@ def load_vecpot(filename):
             f"Expected Ax and Ay on the {dimA}x{dimA} grid for each saved frame."
         )
     flat = flat.reshape(n_snapshots, 2, dimA, dimA)
-    Ax = flat[:, 0, :, :].transpose(0, 2, 1)   # [frame, y, x] on big grid
+    Ax = flat[:, 0, :, :].transpose(0, 2, 1) # [frame, y, x] on the big grid
     Ay = flat[:, 1, :, :].transpose(0, 2, 1)
     return Ax, Ay
 
 
+# B_z from curl(A), then cut the SC block out of the middle of the big grid
 def compute_curlA(Ax_big, Ay_big):
     n_fr = Ax_big.shape[0]
     Bz = np.empty((n_fr, dimy, dimx))
@@ -122,10 +132,9 @@ def compute_curlA(Ax_big, Ay_big):
     return Bz
 
 
-# ------------------------------------------------------------------ load
 print("Loading psi, vec_pot, Js...")
 psi_all = load_psi(psi_filename)
-psi = psi_all[1:]                       # drop initial condition (matches your scripts)
+psi = psi_all[1:] # psi.bin carries the initial condition as frame 0
 Jsx_all, Jsy_all = load_current(Js_filename)
 Ax_all, Ay_all = load_vecpot(A_filename)
 Bz_all = compute_curlA(Ax_all, Ay_all)
@@ -142,11 +151,11 @@ Bz    = Bz_all[FRAME]
 t_here = (FRAME + 1) * dt_snap
 print(f"Frame {FRAME}  ->  t = {t_here:.3f}")
 
-# ------------------------------------------------------------------ colormaps
+# Colormaps
 mag_cmap = plt.cm.magma.copy()
-mag_cmap.set_over("magenta")            # flag |psi|^2 > 1
+mag_cmap.set_over("magenta") # |psi|^2 > 1 is unphysical, so make it obvious
 
-phase_cmap = "twilight"                 # cyclic
+phase_cmap = "twilight" # cyclic, so -pi and pi meet without a visible seam
 
 bz_absmax = np.nanpercentile(np.abs(Bz), 100.0)
 if not (np.isfinite(bz_absmax) and bz_absmax > 0):
@@ -155,25 +164,26 @@ bz_norm = TwoSlopeNorm(vmin=-bz_absmax, vcenter=0.0, vmax=bz_absmax)
 
 xs = np.linspace(0, xmax, dimx)
 ys = np.linspace(0, ymax, dimy)
-X, Y = np.meshgrid(xs, ys)              # [y, x]
+X, Y = np.meshgrid(xs, ys) # [y, x]
 
-# ------------------------------------------------------------------ figure
-# Three SQUARE panels packed close together. constrained_layout OFF so we can
-# drive the spacing manually with subplots_adjust (tight wspace = less whitespace).
+# Figure: three square panels packed close together. constrained_layout is off
+# so the spacing can be driven by hand with subplots_adjust -- a small wspace
+# is what keeps the panels tight.
 fig, (ax_mag, ax_phase, ax_bz) = plt.subplots(1, 3, figsize=(14.0, 6.5))
 
-TITLE_PAD = 13           # gap between panel title and the image (bigger = higher)
-CBAR_FRAC = 0.038        # colorbar thickness (smaller = thinner bar)
-CBAR_PAD  = 0.25         # gap between image and colorbar (bigger = more room for x-label)
+TITLE_PAD = 13    # gap between a panel title and its image
+CBAR_FRAC = 0.038 # colorbar thickness (smaller = thinner)
+CBAR_PAD  = 0.25  # gap below the image (bigger = more room for the x label)
 
+# Shared per-panel styling
 def square(ax):
-    ax.set_box_aspect(1)               # keep each panel square
+    ax.set_box_aspect(1) # keep each panel square
     ax.set_xlim(0, xmax)
     ax.set_ylim(0, ymax)
     ax.set_xlabel(r"x $(\xi)$", labelpad=8)
     ax.tick_params(labelsize=BASE, length=6, width=1.4)
 
-# --- magnitude |psi|^2 ---
+# Panel 1: magnitude |psi|^2
 im_mag = ax_mag.imshow(
     mag, origin="lower", extent=extent,
     vmin=0.0, vmax=1.0, cmap=mag_cmap, interpolation="nearest",
@@ -186,7 +196,7 @@ cb_mag = fig.colorbar(im_mag, ax=ax_mag, extend="max",
 cb_mag.set_label(r"$|\psi|^2$", fontsize=CBAR_LABEL)
 cb_mag.ax.tick_params(labelsize=BASE)
 
-# --- phase vartheta ---
+# Panel 2: phase
 im_phase = ax_phase.imshow(
     phase, origin="lower", extent=extent,
     cmap=phase_cmap, vmin=-np.pi, vmax=np.pi, interpolation="nearest",
@@ -200,7 +210,7 @@ cb_ph.set_label(r"$\vartheta$", fontsize=CBAR_LABEL)
 cb_ph.ax.set_xticklabels([r"$-\pi$", "0", r"$\pi$"])
 cb_ph.ax.tick_params(labelsize=BASE)
 
-# --- B_z with supercurrent quiver ---
+# Panel 3: B_z with the supercurrent quivered on top
 im_bz = ax_bz.imshow(
     Bz, origin="lower", extent=extent,
     cmap="PuOr", norm=bz_norm, interpolation="nearest",
@@ -223,13 +233,13 @@ cb_bz.ax.tick_params(labelsize=BASE)
 
 # fig.suptitle(rf"$t = {t_here:.1f}\,\tau_{{GL}}$", fontsize=SUPTITLE, y=1.06)
 
-# pack panels tightly: small wspace = little gap between the squares.
-# top leaves room for BOTH the panel titles and the suptitle above them.
+# Pack the panels tightly. top leaves room for the panel titles and the
+# suptitle above them.
 fig.subplots_adjust(left=0.055, right=0.995, top=0.86, bottom=0.10, wspace=0.0)
 
-# ==================================================================
-# dashed circles around the vortices
-# ==================================================================
+# Dashed circles around the vortices. Kept off for now -- the auto finder
+# below locates cores by plaquette winding number, same idea as
+# analysis/checks/phase_quant.py, but the poster reads cleaner without them.
 # CIRC_R      = 2.6              # circle radius in xi
 # CIRC_COLOR  = "lime"           # visible over 'twilight'; try "cyan" / "white"
 # CIRC_LW     = 2.2

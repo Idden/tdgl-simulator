@@ -1,3 +1,7 @@
+# Animates the magnetic field B_z = curl(A) over the full vector-potential
+# domain, with the SC block outlined inside the surrounding vacuum.
+# Reads data/vec_pot.bin, writes an mp4 (gif if ffmpeg is missing).
+
 import matplotlib
 matplotlib.use("Agg")
 
@@ -18,11 +22,11 @@ fps = 10
 frame_skip = 1
 include_external_field = True
 
-# "staggered"
-# "centered"
+# Curl stencil: "staggered" matches how the Fortran differences A,
+# "centered" uses np.gradient instead. Staggered is the honest one.
 curl_stencil = "staggered"
 
-# video name vars
+# Video name pieces
 sim_ext_mag = "00353"
 sim_curr = "015"
 H_ext = 0.0353
@@ -34,6 +38,8 @@ dt = tmax / n_t
 dt_snap = stride * dt
 xmax = h * (dimx - 1)
 
+# A lives on a grid 3x the size of the SC block so the field can fall off in
+# vacuum. padx/pady are where the SC block sits inside that bigger grid.
 padx = (3*dimy - dimx) // 2
 pady = dimy
 dimA = 3*dimy
@@ -51,7 +57,7 @@ padx_right_phys = (3*dimy - padx - dimx) * h
 pady_phys = pady * h
 extent = [-padx_phys, xmax + padx_right_phys, -pady_phys, ymax + pady_phys]
 
-# rectangle marking the SC sub-block, for overlay
+# Rectangle marking the SC sub-block, drawn over the vacuum domain
 sc_rect_xy = (0.0, 0.0)
 sc_rect_w = xmax
 sc_rect_h = ymax
@@ -108,7 +114,7 @@ print(f"curlA shape: {curlA_all.shape}  (full {dimA}x{dimA} domain)")
 
 curlA_plot_data = curlA_all
 
-# save helper
+# Helper functions
 def save_animation(animation, mp4_name, fps=15):
     print(f"Saving animation: {mp4_name}...")
     try:
@@ -120,6 +126,7 @@ def save_animation(animation, mp4_name, fps=15):
     print("Done.")
 
 # Color limits
+# Symmetric about zero so the diverging colormap stays centered.
 print("Computing color limits...")
 clim_pct = 100.0
 
@@ -145,7 +152,7 @@ else:
 print(f"curlA color limit: +/- {curlA_abs_max:.6e}")
 print("Done.")
 
-# animation
+# Animation: B_z over the full domain
 frame0 = 0
 curlA0 = curlA_plot_data[frame0]
 
@@ -160,7 +167,7 @@ im_curlA = ax.imshow(
     interpolation="nearest",
 )
 
-# outline the SC inside the vacuum domain
+# Outline the SC inside the vacuum domain
 sc_rect = plt.Rectangle(
     sc_rect_xy, sc_rect_w, sc_rect_h,
     fill=False, edgecolor="k", lw=1.2, ls="--",

@@ -1,3 +1,8 @@
+# Animates div(A) over the full vector-potential domain. This is the Coulomb
+# gauge check -- div(A) should stay near zero everywhere, so anything that
+# lights up here is a gauge violation, not physics.
+# Reads data/div_A.bin, or recomputes from data/vec_pot.bin if that is missing.
+
 import matplotlib
 matplotlib.use("Agg")
 
@@ -18,11 +23,11 @@ stride = 250
 fps = 10
 frame_skip = 1
 
-# "bin"
-# "compute"
+# Where div(A) comes from: "bin" reads what Fortran wrote, "compute"
+# differences vec_pot.bin here instead. Use "compute" to cross-check Fortran.
 divA_source = "bin"
 
-# video name vars
+# Video name pieces
 sim_ext_mag = "00353"
 sim_curr = "015"
 H_ext = 0.0353
@@ -43,13 +48,14 @@ divA_filename = "data/div_A.bin"
 
 video_name = f"divA_0gam_2.1kap_{n_t}t_{dimx}dimx_{dimy}dimy_{sim_ext_mag}mag_{sim_curr}curr.mp4"
 
-# pad cells above and below
+# A lives on a grid 3x the size of the SC block so the field can fall off in
+# vacuum. These convert the pad cell counts into physical extents.
 padx_phys = padx * h
 padx_right_phys = (3*dimy - padx - dimx) * h
 pady_phys = pady * h
 extent = [-padx_phys, xmax + padx_right_phys, -pady_phys, ymax + pady_phys]
 
-# rectangle marking the SC sub-block, for overlay
+# Rectangle marking the SC sub-block, drawn over the vacuum domain
 sc_rect_xy = (0.0, 0.0)
 sc_rect_w = xmax
 sc_rect_h = ymax
@@ -62,7 +68,7 @@ def load_divA_bin(filename):
             f"{filename} has {flat.size} reals, expected {expected_size} "
             f"(= n_snapshots * (3*dimy)^2). Check dimx, dimy, n_t, stride."
         )
-    data = flat.reshape(n_snapshots, dimA, dimA).transpose(0, 2, 1)  # [frame, y, x]
+    data = flat.reshape(n_snapshots, dimA, dimA).transpose(0, 2, 1) # [frame, y, x]
     return data
 
 
@@ -98,6 +104,7 @@ if divA_source == "bin" and os.path.exists(divA_filename):
     divA_all = load_divA_bin(divA_filename)
     print(f"div(A) loaded from {divA_filename} (Fortran).")
 
+    # The Fortran stencil cannot reach the outermost ring, so blank it
     divA_all[:, 0, :] = np.nan
     divA_all[:, -1, :] = np.nan
     divA_all[:, :, 0] = np.nan
@@ -113,7 +120,7 @@ print(f"divA shape: {divA_all.shape}  (full {dimA}x{dimA} domain)")
 
 divA_plot_data = divA_all
 
-# save helper
+# Helper functions
 def save_animation(animation, mp4_name, fps=15):
     print(f"Saving animation: {mp4_name}...")
     try:
@@ -124,7 +131,7 @@ def save_animation(animation, mp4_name, fps=15):
         animation.save(gif_name, writer=PillowWriter(fps=fps))
     print("Done.")
 
-# color limits
+# Color limits
 print("Computing color limits...")
 clim_pct = 100.0
 
@@ -146,7 +153,7 @@ divA_norm = TwoSlopeNorm(vmin=-divA_abs_max, vcenter=0.0, vmax=divA_abs_max)
 print(f"divA color limit: +/- {divA_abs_max:.6e}")
 print("Done.")
 
-# animation
+# Animation: div(A) over the full domain
 frame0 = 0
 divA0 = divA_plot_data[frame0]
 
@@ -161,7 +168,7 @@ im_divA = ax.imshow(
     interpolation="nearest",
 )
 
-# outline the SC inside the vacuum domain
+# Outline the SC inside the vacuum domain
 sc_rect = plt.Rectangle(
     sc_rect_xy, sc_rect_w, sc_rect_h,
     fill=False, edgecolor="k", lw=1.2, ls="--",

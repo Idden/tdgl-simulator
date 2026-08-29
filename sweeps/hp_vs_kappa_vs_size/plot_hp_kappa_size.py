@@ -1,13 +1,18 @@
+# Vortex penetration field H_p against kappa, one curve per system size.
+# H_p is the lowest applied field at which a vortex got in, so each curve
+# shows how the barrier weakens as kappa rises, and the spread between curves
+# shows how much of that is a finite-size effect.
+#
+# Each grid size lives in its own subfolder of tables named grid_k<kappa*100>_task<N>.txt.
+
 import glob
 import re
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
-# ---------------------------------------------------------------------------
-# one entry per grid size: data folder, legend label, and how many leading
+# One entry per grid size: data folder, legend label, and how many leading
 # kappa points to drop -- the smallest kappa is unreliable on the larger grids
-# ---------------------------------------------------------------------------
 SERIES = [
     ("25x25",   r"25$\xi$ x 25$\xi$",   0),
     ("50x50",   r"50$\xi$ x 50$\xi$",   1),
@@ -15,7 +20,7 @@ SERIES = [
     ("200x200", r"200$\xi$ x 200$\xi$", 1),
 ]
 
-YERR = 0.005        # error bar half-height on H_p
+YERR = 0.005 # half the field step, so H_p is only resolved to within this
 
 
 def group_by_kappa(folder):
@@ -44,9 +49,11 @@ def penetration_field(groups):
     return ks, Hp
 
 
+# Figure
 plt.figure(figsize=(16, 9.5))
 
-# line-of-best-fit tests
+# Fit tests, kept for reference. Neither model was convincing enough to put
+# on the poster, so the analytic guide curve at the bottom is used instead.
 # ks_a, Hp_a = np.array(ks, float), np.array(Hp, float)
 # kfine = np.linspace(ks_a.min(), ks_a.max(), 300)
 
@@ -67,6 +74,7 @@ plt.figure(figsize=(16, 9.5))
 #     plt.plot(kfine, f(kfine, *popt), "--", label=f"{name}  $R^2$={r2:.3f}")
 # plt.legend(fontsize=8)
 
+# One curve per size, in the order listed above so the colours stay put
 for folder, label, skip in SERIES:
     ks, Hp = penetration_field(group_by_kappa(folder))
     plt.errorbar(ks[skip:], Hp[skip:], yerr=YERR, fmt='-o', label=label)
@@ -80,6 +88,8 @@ plt.grid(alpha=0.3)
 plt.legend(fontsize=35)
 plt.tick_params(axis='both', which='major', labelsize=25)
 
+# Analytic guide curve: H_p ~ ln(kappa) / (2*kappa^2), offset to sit near the
+# data. Shape comparison only, the offset is not fitted.
 xtest = np.linspace(2, 8, 100)
 ytest = np.log(xtest) / (2*xtest**2) + 0.05
 plt.plot(xtest, ytest, '--')

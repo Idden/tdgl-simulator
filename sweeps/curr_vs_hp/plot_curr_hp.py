@@ -1,8 +1,15 @@
+# Current-field phase diagram: the critical current J_c against applied field.
+# Below a curve no vortex enters, above it one does.
+#
+# One curve per table in `files`, and each table is a SEPARATE sweep run --
+# rerun sweep_curr_hp with the parameter changed, save the result under its
+# own name, then add it here. The dict key is the legend label.
+
 import numpy as np
 import matplotlib.pyplot as plt
 
-# MAKE SURE TO LET USERS NOW HOW TO RUN THIS THING ESPECIALLY THAT THE DATA COMES FROM MULTIPLE RUNS
-
+# Read one sweep table into (H values, I grid, vortex flag grid).
+# Columns are: iH, iI, H_ext, I_curr, vortex, t_c.
 def load_grid(fname):
     data = np.loadtxt(fname)
     iH = data[:, 0].astype(int)
@@ -21,6 +28,8 @@ def load_grid(fname):
     v_grid[iH - 1, iI - 1] = vortex
     return H_vals, I_grid, v_grid
 
+# J_c at each field is the smallest current that let a vortex in. Rows where
+# no current triggered one stay NaN and simply are not drawn.
 def critical_current(I_grid, v_grid):
     nH = I_grid.shape[0]
     Ic = np.full(nH, np.nan)
@@ -38,7 +47,8 @@ files = {
 
 plt.figure(figsize=(16, 9.5))
 
-# guide lines
+# Guide lines for the empirical I_c(H) window the sweep searches within.
+# Same constants the Fortran uses to narrow its current range.
 # xtest = np.linspace(0, 0.27, 100)
 # plt.plot(xtest, -0.37037 * xtest + 0.122, '--', color='0.6')
 # plt.plot(xtest, -0.37037 * xtest + 0.145, '--', color='0.6')
@@ -51,33 +61,30 @@ for label, fname in files.items():
     plt.plot(H_vals[ok], Ic[ok], lw=2, label=label)
 
 plt.legend(fontsize=35)
+# Label the two regions of the phase diagram. Both bubbles are placed by hand.
 plt.annotate(
-    "No Vortices",              # Text inside the bubble
-    xy=(0.08, 0.05),            # Coordinate of the dot
-    xytext=(0.1, 0.04),         # Coordinate of the bubble
+    "No Vortices",
+    xy=(0.08, 0.05),    # point being labelled
+    xytext=(0.1, 0.04), # where the bubble sits
     ha='center', va='center',
     fontsize=45,
-    
-    # 1. This creates the "Text Bubble"
     bbox=dict(
-        boxstyle="round,pad=0.5",   # Rounded corners with padding
-        facecolor="white",          # Bubble background color
-        edgecolor="black",          # Bubble border color
+        boxstyle="round,pad=0.5",
+        facecolor="white",
+        edgecolor="black",
         lw=1.5
     )
 )
 plt.annotate(
-    "Vortices",                 # Text inside the bubble
-    xy=(0.08, 0.05),            # Coordinate of the dot
-    xytext=(0.2, 0.12),         # Coordinate of the bubble
+    "Vortices",
+    xy=(0.08, 0.05),
+    xytext=(0.2, 0.12),
     ha='center', va='center',
     fontsize=45,
-    
-    # 1. This creates the "Text Bubble"
     bbox=dict(
-        boxstyle="round,pad=0.5",   # Rounded corners with padding
-        facecolor="white",          # Bubble background color
-        edgecolor="black",          # Bubble border color
+        boxstyle="round,pad=0.5",
+        facecolor="white",
+        edgecolor="black",
         lw=1.5
     )
 )
