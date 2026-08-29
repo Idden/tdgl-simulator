@@ -30,6 +30,9 @@ data_*/
 *.txt
 !requirements.txt
 !docs/*.txt
+!docs/*.pdf
+!docs/*.bib
+!docs/photos/*.png
 
 # --- compiled Fortran ------------------------------------------------------
 # Linux executables have no extension, so they are listed by exact path.
@@ -44,14 +47,6 @@ sweeps/hp_vs_kappa_vs_size/sweep_hp_kappa_size
 *.smod
 *.a
 *.exe
-
-# fpm
-build/
-
-# --- FORD generated documentation ------------------------------------------
-# Generated from source comments; regenerate rather than commit.
-doc/
-docs/html/
 
 # --- cluster job logs ------------------------------------------------------
 *.out
@@ -75,3 +70,12 @@ slurm-*.out
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# --- LaTeX build artifacts -------------------------------------------------
+*.aux
+*.toc
+*.synctex.gz
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
