@@ -14,6 +14,8 @@ The code was written to study how the critical current - the minimum transport c
 
 Full derivations, dimensionless scaling, and the numerical scheme are in [docs/tdgl-documentation.pdf](docs/tdgl-documentation.pdf).
 
+## Requirements
+
 On Ubuntu 24.04:
 
 ```bash
@@ -47,8 +49,6 @@ export OMP_NUM_THREADS=8
 ./tdgl
 ```
 
-Change a value, build, rerun. Then plot animations of fields and diagnostics:
-
 ```bash
 cd ../analysis
 python diagnostic.py
@@ -69,7 +69,7 @@ analysis/     diagnostics and plotting from the binary field dumps
   checks/     fluxoid and phase quantization verification
 sweeps/       parameter studies: solver + SLURM script + plotting
 figures/      figure and video generation for poster
-docs/         build environment notes
+docs/         build environment notes and code documentation
 ```
 
 ## Output

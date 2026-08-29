@@ -1,5 +1,9 @@
 # ---------------------------------------------------------------------------
 # tdgl-simulator
+#
+# Git applies the LAST matching pattern, so every "keep this" rule (!) lives in
+# the KEEP section at the bottom -- after the broad *.pdf / *.png / *.txt rules
+# it has to override. A negation placed higher up in this file will not work.
 # ---------------------------------------------------------------------------
 
 # --- Python environment ----------------------------------------------------
@@ -25,17 +29,13 @@ data_*/
 *.h5
 *.mat
 
-# HPC sweep results (grid_task*.txt, grid_k*_task*.txt) — thousands of files.
-# requirements.txt and anything under docs/ are kept.
+# HPC sweep results (grid_task*.txt, grid_k*_task*.txt) -- thousands of files
 *.txt
-!requirements.txt
-!docs/*.txt
-!docs/*.pdf
-!docs/*.bib
-!docs/photos/*.png
 
 # --- compiled Fortran ------------------------------------------------------
 # Linux executables have no extension, so they are listed by exact path.
+# These must match the -o name in docs/build-environment.md and the binary
+# that each sweeps/*/*.sh actually runs.
 app/tdgl
 sweeps/curr_vs_hp/sweep_curr_hp
 sweeps/curr_vs_w0/sweep_curr_w0
@@ -71,11 +71,29 @@ slurm-*.out
 Thumbs.db
 desktop.ini
 
+# ===========================================================================
+# KEEP -- these override everything above. Order matters: this block must stay
+# below the broad rules, and the LaTeX artifact block must stay below it.
+# ===========================================================================
+
+# the Python pin
+!requirements.txt
+
+# everything under docs/: the .tex source, references.bib, the built PDF,
+# photos/ used by \includegraphics, and the .md notes
+!docs/**
+
 # --- LaTeX build artifacts -------------------------------------------------
+# Re-ignored after !docs/**, so a local latexmk run leaves nothing to commit.
 *.aux
+*.log
+*.out
 *.toc
-*.synctex.gz
 *.bbl
 *.blg
 *.fls
 *.fdb_latexmk
+*.synctex.gz
+*.nav
+*.snm
+*.vrb

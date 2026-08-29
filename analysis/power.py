@@ -88,12 +88,12 @@ print("Loading data...")
 pow_all = load_scalar(power_filename)
 
 # Dissipation p = Jn.E = |Jn|^2 / sigma_n must be >= 0.
-# Data from before the Ex/Ey sign fix in gTDGL.f95 comes out as -|Jn|^2:
+# Data from before the Ex/Ey sign fix in tdgl.F90 comes out as -|Jn|^2:
 # detect that and flip so old runs still plot correctly.
 finite = pow_all[np.isfinite(pow_all)]
 if finite.size and np.sum(finite) < 0.0:
     print("WARNING: power.bin is predominantly negative -- this looks like data "
-          "from before the Ex/Ey sign fix in gTDGL.f95. Flipping sign. "
+          "from before the Ex/Ey sign fix in tdgl.F90. Flipping sign. "
           "Rerun the sim with the fixed code to get rid of this warning.")
     pow_all = -pow_all
 

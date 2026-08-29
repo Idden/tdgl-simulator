@@ -6,6 +6,10 @@ Python 3.12.3
 ## Compilers
 /usr/bin/mpif90
 /usr/bin/gfortran
+
+Both report the same version -- `mpif90` here is an OpenMPI wrapper around
+gfortran, not a separate compiler:
+
 GNU Fortran (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
 Copyright (C) 2023 Free Software Foundation, Inc.
 This is free software; see the source for copying conditions.  There is NO
@@ -58,19 +62,75 @@ ii  openmpi-bin                      4.1.6-7ubuntu2                          amd
 ii  openmpi-common                   4.1.6-7ubuntu2                          all          high performance message passing library -- common files
 ii  rpcsvc-proto                     1.4.2-0ubuntu7                          amd64        RPC protocol compiler and definitions
 
-## Compile command
+## Compile command (WSL Ubuntu 24.04)
 
-Run from inside `main/` on WSL Ubuntu 24.04:
+Run from inside `app/`:
 
-    mpifort -cpp -fopenmp -I/usr/include gTDGL.f95 -o gTDGL \
+    mpifort -fopenmp -I/usr/include tdgl.F90 -o tdgl \
         -ldmumps -lscalapack-openmpi -lopenblas
 
-    or
+Two notes on that line:
 
-    mpifort -fopenmp -I/usr/include gTDGL.F90 -o gTDGL \
-        -ldmumps -lscalapack-openmpi -lopenblas
+- `.F90` (capital F) is preprocessed automatically, so the `-cpp` flag the
+  original `.f95` build needed is no longer required.
+- There is no `-O2`. gfortran defaults to `-O0`, so every run produced with
+  this command was unoptimized.
 
-Then: ./gTDGL  &&  python3 gTDGL_plotting.py
+Then:
+
+    cd app  &&  mkdir -p data  &&  ./tdgl
+    cd ../analysis  &&  python3 diagnostic.py
+
+To confirm what actually got linked:
+
+    ldd app/tdgl | grep -E 'mumps|scalapack|openblas|mpi'
+
+Verified output of that build (2026-08-29):
+
+    libdmumps-5.6.so         => /lib/x86_64-linux-gnu/libdmumps-5.6.so
+    libmumps_common-5.6.so   => /lib/x86_64-linux-gnu/libmumps_common-5.6.so
+    libscalapack-openmpi.so.2.2 => /lib/x86_64-linux-gnu/libscalapack-openmpi.so.2.2
+    libopenblas.so.0         => /lib/x86_64-linux-gnu/libopenblas.so.0
+    libmpi.so.40             => /lib/x86_64-linux-gnu/libmpi.so.40
+    libmpi_mpifh.so.40       => /lib/x86_64-linux-gnu/libmpi_mpifh.so.40
+
+i.e. the distro packages listed above, resolved exactly as intended.
+
+## Cluster build (LSU, mike2)
+
+The SLURM scripts under `sweeps/` do **not** use the toolchain above. Each one
+loads:
+
+    module load intel/2021.5.0 intel-mpi/2021.5.1
+
+which gives:
+
+| Component | Version |
+|---|---|
+| ifort (via `mpiifort`) | 2021.5.0 20211109 |
+| Intel MPI | 2021.5.1 |
+| MKL (`$MKLROOT`) | /home/packages/compilers/intel/mkl/2022.0.2 |
+
+So the sweep binaries in `/work/idden/scripts/` were compiled with `mpiifort`,
+and BLAS / LAPACK / ScaLAPACK come from MKL rather than the OpenBLAS and
+ScaLAPACK packages listed above. Everything in the Packages section of this
+file describes the WSL build only; `-lscalapack-openmpi -lopenblas` is not the
+right link line on the cluster.
+
+### Still unrecorded
+
+The exact `mpiifort` link line, and where MUMPS comes from on the cluster --
+MKL does not ship MUMPS, so it is either a separate module or a local build.
+Both can be recovered from a binary that already exists:
+
+    ls -l /work/idden/scripts/
+    ldd /work/idden/scripts/<binary> | grep -E 'mumps|mkl|scalapack|mpi'
+    grep -a mpiifort ~/.bash_history
+    module avail 2>&1 | grep -i mumps
+
+The `ldd` line is the useful one: it names every library the working binary
+resolved, which is enough to reconstruct the link command. (`grep -a` matters
+-- the history file contains a stray byte that makes grep treat it as binary.)
 
 ## Reproducing this environment
 

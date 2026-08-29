@@ -63,7 +63,7 @@ def make_blockade_mask(dimx, dimy):
 blockade_mask = make_blockade_mask(dimx, dimy)
 
 
-# Load psi (identical convention to gTDGL_plotting.py)
+# Load psi (identical convention to diagnostic.py)
 def load_psi(filename):
     flat = np.fromfile(filename, dtype=np.complex128)
 

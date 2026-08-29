@@ -63,7 +63,7 @@ dt_snap = stride * dt
 xmax = h * (dimx - 1)
 extent = [0, xmax, 0, ymax]
 
-# big vector-potential grid (same convention as gTDGL_plotting.py / curlA.py)
+# big vector-potential grid (same convention as diagnostic.py / curlA.py)
 padx = (3 * dimy - dimx) // 2
 pady = dimy
 dimA = 3 * dimy
