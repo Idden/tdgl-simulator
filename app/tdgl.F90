@@ -8,22 +8,22 @@ program solve_tdgl
     include 'dmumps_struc.h'
     type(DMUMPS_STRUC) :: id
     integer :: ierr, nnz
-    integer, parameter :: dimx = 30
-    integer, parameter :: dimy = 30
+    integer, parameter :: dimx = 60
+    integer, parameter :: dimy = 60
     integer, parameter :: n = dimx*dimy
     integer, parameter :: nA = dimy**2
     real(8), parameter :: ymax = 30d0
-    integer, parameter :: n_t = 4000
-    real(8), parameter :: tmax = 40d0
+    integer, parameter :: n_t = 30000
+    real(8), parameter :: tmax = 300d0
     integer, parameter :: n_relax = 0, n_ramp = 0
     integer, parameter :: H_relax = 0, H_ramp = n_relax
     integer, parameter :: stride = nint(1/(tmax/n_t))
     integer, parameter :: stride_power = stride
     integer, parameter :: stride_mumps = 1
-    real(8), parameter :: kappa = 2.1d0, sigma_n = 1d0, gam = 0d0
-    real(8), parameter :: H_ext = 0.0d0, current_max = 0.0d0
-    integer, parameter :: print_stride = 500
-    logical, parameter :: A_on = .false.
+    real(8), parameter :: kappa = 2.1d0, sigma_n = 1d0, gam = 10d0
+    real(8), parameter :: H_ext = 0.0353d0, current_max = 0.15d0
+    integer, parameter :: print_stride = 2500
+    logical, parameter :: A_on = .true.
     real(8) :: h, dt, u, eps
     complex(8), allocatable :: psi_init(:), psi_new(:), psi_old(:), psi_laplac(:)
     complex(8), allocatable :: G(:)
@@ -76,7 +76,7 @@ program solve_tdgl
     dt = tmax / n_t
     u = 5.79d0
     phi = 0d0
-    eps = 0.25d0
+    eps = 1.0d0
     
     Ax = 0d0; Ay = 0d0; Jnx = 0d0; Jny = 0d0; Jn_wall = 0d0; Ex = 0d0; Ey = 0d0; Pow = 0d0
     t_Js = 0d0; t_div = 0d0; t_phi = 0d0; t_lap = 0d0; t_A = 0d0 ; t_io = 0d0
@@ -397,26 +397,16 @@ contains
         real(8) :: ci, cj, x, half_w
         real(8) :: w0_half, lead_half, R
 
-        out = .false.
+        ci = (dimy + 1) / 2d0
+        cj = (dimx + 1) / 2d0
+        lead_half = 0.45d0 * dimy
+        w0_half = 0.57d0 * lead_half
+        R = 0.20d0 * dimy
+
+        x = real(j, 8) - cj
+        half_w = lead_half - (lead_half - w0_half) / (1d0 + (x/R)**2)
+        out = abs(real(i, 8) - ci) > half_w
     end function is_blockade
-
-    ! function is_blockade(i, j, dimx, dimy) result(out)
-    !     implicit none
-    !     integer, intent(in) :: i, j, dimx, dimy
-    !     logical :: out
-    !     real(8) :: ci, cj, x, half_w
-    !     real(8) :: w0_half, lead_half, R
-
-    !     ci = (dimy + 1) / 2d0
-    !     cj = (dimx + 1) / 2d0
-    !     lead_half = 0.45d0 * dimy
-    !     w0_half = 0.57d0 * lead_half
-    !     R = 0.20d0 * dimy
-
-    !     x = real(j, 8) - cj
-    !     half_w = lead_half - (lead_half - w0_half) / (1d0 + (x/R)**2)
-    !     out = abs(real(i, 8) - ci) > half_w
-    ! end function is_blockade
 
     ! function is_blockade(i, j, dimx, dimy) result(out)
     !     implicit none

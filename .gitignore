@@ -60,9 +60,7 @@ slurm-*.out
 *.jpeg
 *.svg
 *.eps
-*.pdf
 *.gif
-*.mp4
 *.avi
 *.mov
 

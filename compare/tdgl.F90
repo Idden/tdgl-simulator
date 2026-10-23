@@ -8,22 +8,23 @@ program solve_tdgl
     include 'dmumps_struc.h'
     type(DMUMPS_STRUC) :: id
     integer :: ierr, nnz
-    integer, parameter :: dimx = 16
-    integer, parameter :: dimy = 16
+    integer, parameter :: dimx = 121
+    integer, parameter :: dimy = 121
     integer, parameter :: n = dimx*dimy
     integer, parameter :: nA = dimy**2
     real(8), parameter :: ymax = 30d0
-    integer, parameter :: n_t = 10000
+    integer, parameter :: n_t = 20000
     real(8), parameter :: tmax = 200d0
-    integer, parameter :: n_relax = 0, n_ramp = 1000
+    integer, parameter :: n_relax = 0, n_ramp = 2500
     integer, parameter :: H_relax = 0, H_ramp = n_relax
-    integer, parameter :: stride = nint(n_t / tmax)
+    integer, parameter :: stride = 200
     integer, parameter :: stride_power = stride
     integer, parameter :: stride_mumps = 1
     real(8), parameter :: kappa = 2.1d0, sigma_n = 1d0, gam = 0d0
-    real(8), parameter :: H_ext = 0.0d0, current_max = 0.25d0
+    real(8), parameter :: H_ext = 0.0d0, current_max = 0.1d0
     integer, parameter :: print_stride = 500
     logical, parameter :: A_on = .false.
+    logical, parameter :: bench = .false.   ! .true. = timing run: skip diagnostics and extra dumps
     real(8) :: h, dt, u, eps
     complex(8), allocatable :: psi_init(:), psi_new(:), psi_old(:), psi_laplac(:)
     complex(8), allocatable :: G(:)
@@ -220,7 +221,7 @@ program solve_tdgl
         call calculate_div_Js(dimx, dimy, h, H_now, psi_old, Ax, Ay, div_Js)
         t_div = t_div + (wtime() - t0)
 
-        if (mod(t, stride_mumps) == 0) then
+        if (mod(t, stride) == 0 .and. .not. bench) then
             t0 = wtime()
             call calculate_phi(dimx, dimy, h, div_Js, sigma_n, current_now, phi)
             t_phi = t_phi + (wtime() - t0)
@@ -269,41 +270,45 @@ program solve_tdgl
         t0 = wtime()
         if (mod(t, stride) == 0) then
             write(10) psi_new
-            write(20) Jsx_plot, Jsy_plot
-            write(30) div_Js
-            write(40) phi
-            write(50) Ax, Ay
-            write(60) Jnx_plot, Jny_plot
-            write(70) Jtotx, Jtoty
-            write(80) div_A
-            write(90) div_Jtot
+            if (.not. bench) then
+                write(20) Jsx_plot, Jsy_plot
+                write(30) div_Js
+                write(40) phi
+                write(50) Ax, Ay
+                write(60) Jnx_plot, Jny_plot
+                write(70) Jtotx, Jtoty
+                write(80) div_A
+                write(90) div_Jtot
+            end if
         end if
-        if (mod(t, stride_power) == 0) then
+        if (mod(t, stride_power) == 0 .and. .not. bench) then
             write(100) Pow
         end if
         t_io = t_io + (wtime() - t0)
 
         ! check for current conservation in div Js
-        !$omp parallel do collapse(2) schedule(static) &
-        !$omp private(idx)
-        do j = 1, dimx
-            do i = 1, dimy
-                idx = i + (j-1) * dimy
+        if (.not. bench) then
+            !$omp parallel do collapse(2) schedule(static) &
+            !$omp private(idx)
+            do j = 1, dimx
+                do i = 1, dimy
+                    idx = i + (j-1) * dimy
 
-                div_Js_LHS(idx) = (u / sqrt(1d0 + gam**2 * abs(psi_old(idx))**2)) * &
-                                  (aimag(conjg(psi_old(idx)) * (psi_new(idx) - psi_old(idx))) / dt &
-                                  + phi(idx) * abs(psi_old(idx))**2)
+                    div_Js_LHS(idx) = (u / sqrt(1d0 + gam**2 * abs(psi_old(idx))**2)) * &
+                                    (aimag(conjg(psi_old(idx)) * (psi_new(idx) - psi_old(idx))) / dt &
+                                    + phi(idx) * abs(psi_old(idx))**2)
 
-                div_Js_RHS(idx) = aimag(conjg(psi_old(idx)) * psi_laplac(idx)) / h**2
+                    div_Js_RHS(idx) = aimag(conjg(psi_old(idx)) * psi_laplac(idx)) / h**2
 
-                div_Js_diff_LHS(idx) = div_Js(idx) - div_Js_LHS(idx)
-                div_Js_diff_RHS(idx) = div_Js(idx) - div_Js_RHS(idx)
+                    div_Js_diff_LHS(idx) = div_Js(idx) - div_Js_LHS(idx)
+                    div_Js_diff_RHS(idx) = div_Js(idx) - div_Js_RHS(idx)
+                end do
             end do
-        end do
-        !$omp end parallel do
+            !$omp end parallel do
+        end if
 
         ! diagnostic prints
-        if (mod(t, print_stride) == 0) then
+        if (mod(t, print_stride) == 0 .and. .not. bench) then
             sum_abs_psi = 0d0
             psi_count = 0
             do j = 1, dimx
@@ -395,11 +400,25 @@ contains
         implicit none
         integer, intent(in) :: i, j, dimx, dimy
         logical :: out
-        real(8) :: ci, cj, x, half_w
-        real(8) :: w0_half, lead_half, R
+        real(8) :: hh, x, y, half_w
 
-        out = .false.
+        hh = ymax / (dimy - 1)
+        x  = (j - (dimx + 1) / 2d0) * hh          ! -15 ... +15 xi
+        y  = (i - (dimy + 1) / 2d0) * hh          ! -15 ... +15 xi
+
+        half_w = 13.5d0 - (13.5d0 - 0.57d0*13.5d0) / (1d0 + (x/6d0)**2)
+        out = abs(y) > half_w
     end function is_blockade
+
+    ! function is_blockade(i, j, dimx, dimy) result(out)
+    !     implicit none
+    !     integer, intent(in) :: i, j, dimx, dimy
+    !     logical :: out
+    !     real(8) :: ci, cj, x, half_w
+    !     real(8) :: w0_half, lead_half, R
+
+    !     out = .false.
+    ! end function is_blockade
 
     ! function is_blockade(i, j, dimx, dimy) result(out)
     !     implicit none
